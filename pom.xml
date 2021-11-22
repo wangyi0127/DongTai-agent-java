@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.secnium.iast</groupId>
     <artifactId>iast</artifactId>
-    <version>0.6.1</version>
+    <version>1.1.1</version>
     <packaging>pom</packaging>
 
     <name>dongtai-agent-java</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <iast.version>0.6.1</iast.version>
+        <iast.version>1.1.1</iast.version>
         <shade-prefix>com.secnium.iast.thirdparty</shade-prefix>
 
         <maven.compiler.source>1.6</maven.compiler.source>
@@ -32,14 +32,17 @@
         <commons-lang3.version>3.4</commons-lang3.version>
         <commons-collections.version>3.2.1</commons-collections.version>
         <commons-io.version>2.4</commons-io.version>
-        <commons-configuration.version>1.10</commons-configuration.version>
         <guava.version>18.0</guava.version>
         <json.version>20160810</json.version>
         <retrofit.version>1.9.0</retrofit.version>
-        <asm.version>9.0</asm.version>
+        <asm.version>9.2</asm.version>
         <junit.version>4.13.1</junit.version>
         <proguard.version>2.2.0</proguard.version>
         <jdk.version.level>2</jdk.version.level>
+        <javax.servlet-api>3.1.0</javax.servlet-api>
+        <servlet-api>2.4</servlet-api>
+        <jakarta.servlet-api>5.0.0</jakarta.servlet-api>
+        <oshi-core.version>3.13.6</oshi-core.version>
     </properties>
 
     <build>
@@ -76,6 +79,9 @@
         <module>iast-agent</module>
         <module>iast-inject</module>
         <module>iast-core</module>
+        <module>dongtai-jakarta-api</module>
+        <module>dongtai-servlet-api</module>
+        <module>dongtai-spring-api</module>
     </modules>
 
     <dependencyManagement>
@@ -101,19 +107,6 @@
     </dependencyManagement>
 
 
-    <description>Secnium IAST Community</description>
-
-    <repositories>
-        <repository>
-            <id>spring</id>
-            <url>https://maven.aliyun.com/repository/public</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
+    <description>DongTai IAST</description>
 
 </project>

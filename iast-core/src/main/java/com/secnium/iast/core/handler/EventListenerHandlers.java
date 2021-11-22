@@ -1,6 +1,7 @@
 package com.secnium.iast.core.handler;
 
 import com.secnium.iast.core.EngineManager;
+import com.secnium.iast.core.enhance.plugins.api.spring.SpringApplicationImpl;
 import com.secnium.iast.core.handler.controller.HookType;
 import com.secnium.iast.core.handler.controller.impl.HttpImpl;
 import com.secnium.iast.core.handler.controller.impl.PropagatorImpl;
@@ -10,7 +11,6 @@ import com.secnium.iast.core.handler.graphy.GraphBuilder;
 import com.secnium.iast.core.handler.models.MethodEvent;
 import com.secnium.iast.core.report.ErrorLogReport;
 import com.secnium.iast.core.util.ThrowableUtils;
-
 import java.lang.iast.inject.Injecter;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,45 +20,55 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author dongzhiyong@huoxian.cn
  */
 public class EventListenerHandlers {
+
     /**
      * 调用序列生成器
      */
-    private static final AtomicInteger INVOKE_ID_SEQUENCER = new AtomicInteger(1000);
+    public static final AtomicInteger INVOKE_ID_SEQUENCER = new AtomicInteger(1000);
 
-    public static void onBefore(final int listenerId,
-                                final String framework,
-                                final String javaClassName,
-                                final String javaMethodName,
-                                final String javaMethodDesc,
-                                final Object object,
-                                final Object[] argumentArray,
-                                final Object retValue,
-                                final String signature,
-                                final boolean isStatic,
-                                final int hookType
+    public static void onBefore(final String framework,
+            final String javaClassName,
+            final String matchClassName,
+            final String javaMethodName,
+            final String javaMethodDesc,
+            final Object object,
+            final Object[] argumentArray,
+            final Object retValue,
+            final String signature,
+            final boolean isStatic,
+            final int hookType
     ) {
         // 如果已经进入scope，则检查是否遇到suorce点、sink点等
-        if (hookType == 0) {
+        if (HookType.HTTP.equals(hookType)) {
             if (!EngineManager.isLingzhiRunning()) {
                 EngineManager.turnOnLingzhi();
             }
         }
+
         if (EngineManager.isLingzhiRunning()) {
             try {
                 EngineManager.turnOffLingzhi();
-                boolean isEnterHttpEntryPoint = EngineManager.ENTER_HTTP_ENTRYPOINT.isEnterHttp();
-                boolean isHttpEntryMethod = HookType.HTTP.equals(hookType);
-                if (isEnterHttpEntryPoint || isHttpEntryMethod) {
-                    MethodEvent event = new MethodEvent(0, -1, javaClassName, javaMethodName, javaMethodDesc, signature, object, argumentArray, retValue, framework, isStatic, null);
-                    if (isHttpEntryMethod) {
-                        HttpImpl.solveHttp(event);
-                    } else {
-                        if (HookType.PROPAGATOR.equals(hookType)) {
+
+                if (HookType.SPRINGAPPLICATION.equals(hookType)) {
+                    MethodEvent event = new MethodEvent(0, -1, javaClassName, matchClassName, javaMethodName,
+                            javaMethodDesc, signature, object, argumentArray, retValue, framework, isStatic, null);
+                    SpringApplicationImpl.getWebApplicationContext(event);
+                } else {
+                    boolean isEnterHttpEntryPoint = EngineManager.ENTER_HTTP_ENTRYPOINT.isEnterHttp();
+                    boolean isHttpEntryMethod = HookType.HTTP.equals(hookType) || HookType.DUBBO.equals(hookType);
+                    if (isEnterHttpEntryPoint || isHttpEntryMethod) {
+                        MethodEvent event = new MethodEvent(0, -1, javaClassName, matchClassName, javaMethodName,
+                                javaMethodDesc, signature, object, argumentArray, retValue, framework, isStatic, null);
+                        if (HookType.HTTP.equals(hookType)) {
+                            HttpImpl.solveHttp(event);
+                        } else if (HookType.DUBBO.equals(hookType)) {
+                            System.out.println("Enter Dubbo");
+                        } else if (HookType.PROPAGATOR.equals(hookType) && !EngineManager.TAINT_POOL.get().isEmpty()) {
                             PropagatorImpl.solvePropagator(event, INVOKE_ID_SEQUENCER);
                         } else if (HookType.SOURCE.equals(hookType)) {
                             SourceImpl.solveSource(event, INVOKE_ID_SEQUENCER);
-                        } else if (HookType.SINK.equals(hookType)) {
-                            SinkImpl.solveSink(event, INVOKE_ID_SEQUENCER);
+                        } else if (HookType.SINK.equals(hookType)&& !EngineManager.TAINT_POOL.get().isEmpty()) {
+                            SinkImpl.solveSink(event);
                         }
                     }
                 }
@@ -71,8 +81,8 @@ public class EventListenerHandlers {
     }
 
     public static Object onReturn(final int listenerId,
-                                  final Class<?> spyRetClassInTargetClassLoader,
-                                  final Object object) throws Throwable {
+            final Class<?> spyRetClassInTargetClassLoader,
+            final Object object) throws Throwable {
         // 判断sign是否需要hook
         Injecter.Ret ret = null;
         if (EngineManager.isLingzhiRunning()) {
@@ -92,8 +102,8 @@ public class EventListenerHandlers {
     }
 
     public static Object onThrows(final int listenerId,
-                                  final Class<?> spyRetClassInTargetClassLoader,
-                                  final Throwable throwable) throws Throwable {
+            final Class<?> spyRetClassInTargetClassLoader,
+            final Throwable throwable) throws Throwable {
         return null;
     }
 
@@ -188,17 +198,17 @@ public class EventListenerHandlers {
     /**
      * 离开HTTP入口时，维护当前线程的状态
      */
-    public static void leaveHttp() {
+    public static void leaveHttp(Object response) {
         try {
             EngineManager.SCOPE_TRACKER.leaveHttp();
             if (EngineManager.SCOPE_TRACKER.isExitedHttp() && EngineManager.ENTER_HTTP_ENTRYPOINT.isEnterHttp()) {
                 EngineManager.maintainRequestCount();
-                // todo: 数据发送至服务器端
-                GraphBuilder.buildAndReport();
+                GraphBuilder.buildAndReport(response);
                 EngineManager.cleanThreadState();
             }
         } catch (Exception e) {
             ErrorLogReport.sendErrorLog(ThrowableUtils.getStackTrace(e));
+            EngineManager.cleanThreadState();
         }
     }
 
@@ -216,4 +226,34 @@ public class EventListenerHandlers {
         return false;
     }
 
+    /**
+     * Wrap the Request object and get the request packet
+     *
+     * @param req       The instantiated object of HttpServletRequest(Servlet-API、Jakarta-API)
+     * @param isJakarta Whether it is the request object of jakarta-api
+     * @return The request object wrapped by RequestWrapper, which can call inputStream/Reader repeatedly
+     */
+    public static Object cloneRequest(Object req, boolean isJakarta) {
+        return HttpImpl.cloneRequest(req, isJakarta);
+    }
+
+    public static boolean isReplayRequest() {
+        try {
+            return (Boolean) EngineManager.REQUEST_CONTEXT.get().get("replay-request");
+        } catch (Exception e) {
+            ErrorLogReport.sendErrorLog(ThrowableUtils.getStackTrace(e));
+        }
+        return false;
+    }
+
+    /**
+     * Wrap the Response object and get the response packet
+     *
+     * @param response  The instantiated object of HttpServletResponse(Servlet-API、Jakarta-API)
+     * @param isJakarta Whether it is the request object of jakarta-api
+     * @return
+     */
+    public static Object cloneResponse(Object response, boolean isJakarta) {
+        return HttpImpl.cloneResponse(response);
+    }
 }

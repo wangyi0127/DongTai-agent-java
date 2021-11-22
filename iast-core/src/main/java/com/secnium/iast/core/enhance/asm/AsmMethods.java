@@ -1,6 +1,5 @@
 package com.secnium.iast.core.enhance.asm;
 
-import com.secnium.iast.core.util.SandboxReflectUtils;
 import org.objectweb.asm.commons.Method;
 
 import java.lang.iast.inject.Injecter;
@@ -27,12 +26,12 @@ public interface AsmMethods {
     }
 
     /**
-     * asm method of {@link Injecter#spyMethodOnBefore(Object, Object[], String, String, int, String, String, String, Object, String, boolean, int)}
+     * asm method of {@link Injecter#spyMethodOnBefore(Object, Object[], String, String, String, String, String, String, Object, String, boolean, int)}
      */
     Method ASM_METHOD_Spy$spyMethodOnBefore = InnerHelper.getAsmMethod(
             Injecter.class,
             "spyMethodOnBefore",
-            Object.class, Object[].class, String.class, String.class, int.class, String.class, String.class, String.class, Object.class, String.class, boolean.class, int.class
+            Object.class, Object[].class, String.class, String.class, String.class, String.class, String.class, String.class, Object.class, String.class, boolean.class, int.class
     );
 
     /**
@@ -150,12 +149,13 @@ public interface AsmMethods {
     );
 
     /**
-     * asm method of {@link Injecter#leaveHttp(String)}
+     * asm method of {@link Injecter#leaveHttp(String, Object)}
      */
     Method ASM_METHOD_Spy$leaveHttp = InnerHelper.getAsmMethod(
             Injecter.class,
             "leaveHttp",
-            String.class
+            String.class,
+            Object.class
     );
 
     /**
@@ -165,6 +165,31 @@ public interface AsmMethods {
             Injecter.class,
             "isFirstLevelHttp",
             String.class
+    );
+
+    /**
+     * asm method of {@link Injecter#cloneRequest(String, Object, boolean)}
+     */
+    Method ASM_METHOD_Spy$cloneRequest = InnerHelper.getAsmMethod(
+            Injecter.class,
+            "cloneRequest",
+            String.class,
+            Object.class,
+            boolean.class
+    );
+
+    Method ASM_METHOD_Spy$isReplayRequest = InnerHelper.getAsmMethod(
+            Injecter.class,
+            "isReplayRequest",
+            String.class
+    );
+
+    Method ASM_METHOD_Spy$cloneResponse = InnerHelper.getAsmMethod(
+            Injecter.class,
+            "cloneResponse",
+            String.class,
+            Object.class,
+            boolean.class
     );
 
 }

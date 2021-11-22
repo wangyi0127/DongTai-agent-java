@@ -4,11 +4,11 @@ import com.secnium.iast.core.enhance.IastContext;
 import com.secnium.iast.core.enhance.plugins.AbstractClassVisitor;
 import com.secnium.iast.core.enhance.plugins.framework.j2ee.dispatch.ServletDispatcherAdviceAdapter;
 import com.secnium.iast.core.util.AsmUtils;
+import com.secnium.iast.core.util.LogUtils;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.slf4j.Logger;
-import com.secnium.iast.core.util.LogUtils;
 
 
 /**
@@ -31,7 +31,7 @@ public class JspPageAdapter extends AbstractClassVisitor {
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
         if ("_jspService".equals(name)) {
-            String iastMethodSignature = AsmUtils.buildSignature(context.getMatchClassname(), name, desc);
+            String iastMethodSignature = AsmUtils.buildSignature(context.getMatchClassName(), name, desc);
             mv = new JspAdviceAdapter(mv, access, name, desc, iastMethodSignature, context);
             transformed = true;
         }
@@ -41,14 +41,14 @@ public class JspPageAdapter extends AbstractClassVisitor {
     private class JspAdviceAdapter extends ServletDispatcherAdviceAdapter {
 
         JspAdviceAdapter(MethodVisitor methodVisitor, int access, String name, String desc, String signature, IastContext context) {
-            super(methodVisitor, access, name, desc, signature, context);
+            super(methodVisitor, access, name, desc, signature, context, false);
         }
 
         @Override
         public void visitMethodInsn(int opc, String owner, String name, String desc, boolean isInterface) {
             if (owner.endsWith("JspRuntimeLibrary") && "include".equals(name)) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("[com.secnium.iast] 进入include方法" + owner + "." + name);
+                    logger.debug("[com.secnium.iast] enter include method" + owner + "." + name);
                 }
 
                 int j = newLocal(Type.getType(Object.class));

@@ -2,7 +2,7 @@ package com.secnium.iast.core;
 
 import com.secnium.iast.core.engines.IEngine;
 import com.secnium.iast.core.engines.impl.*;
-import com.secnium.iast.core.report.AgentRegisterReport;
+import com.secnium.iast.core.report.StartUpTimeReport;
 import com.secnium.iast.core.util.LogUtils;
 import org.slf4j.Logger;
 
@@ -15,18 +15,18 @@ import java.util.ListIterator;
  */
 public class AgentEngine {
 
-    private static Logger logger = LogUtils.getLogger(AgentEngine.class);
+    private static final Logger logger = LogUtils.getLogger(AgentEngine.class);
     private static AgentEngine instance;
 
-    public Instrumentation getInst() {
-        return inst;
+    public long getStartUpTime() {
+        return startUpTime;
     }
 
-    public void setInst(Instrumentation inst) {
-        this.inst = inst;
+    public void setStartUpTime(long startUpTime) {
+        this.startUpTime = startUpTime;
     }
 
-    private Instrumentation inst;
+    private long startUpTime = 0;
     ArrayList<IEngine> engines = new ArrayList<IEngine>();
 
     private static AgentEngine getInstance() {
@@ -45,18 +45,21 @@ public class AgentEngine {
     }
 
 
-    public static void install(String mode, String propertiesFilePath, Instrumentation inst) {
+    public static void install(String mode, String propertiesFilePath, Integer agentId, Instrumentation inst, String agentFile) {
         long start = System.currentTimeMillis();
-        logger.info("The engine is about to be installed, the installation mode is {}", mode);
-
+        logger.info("DongTai Engine is about to be installed, the installation mode is {}", mode);
+        PropertyUtils propertiesUtils = PropertyUtils.getInstance(propertiesFilePath);
+        EngineManager.setAgentPath(agentFile);
+        EngineManager.setAgentId(agentId);
         AgentEngine agentEngine = AgentEngine.getInstance();
         assert agentEngine != null;
-        agentEngine.setInst(inst);
-        agentEngine.init(mode, propertiesFilePath, inst);
+        agentEngine.init(mode, propertiesUtils, inst);
         agentEngine.run();
-
-        logger.info("The engine is successfully installed to the JVM, and it takes {}ms", System.currentTimeMillis() - start);
-        AgentRegisterReport.send();
+        agentEngine.setStartUpTime(System.currentTimeMillis() - start);
+        Integer startupTime = (int) agentEngine.getStartUpTime();
+        StartUpTimeReport.sendReport(EngineManager.getAgentId(), startupTime);
+        EngineManager.agentStarted();
+        logger.info("DongTai Engine is successfully installed to the JVM, and it takes {} s", agentEngine.getStartUpTime() / 1000);
     }
 
     public static void start() {
@@ -83,10 +86,7 @@ public class AgentEngine {
     /**
      * // 初始化引擎
      */
-    public void init(String mode, String propertiesFilePath, Instrumentation inst) {
-        PropertyUtils propertiesUtils = PropertyUtils.getInstance(propertiesFilePath);
-
-
+    public void init(String mode, PropertyUtils propertiesUtils, Instrumentation inst) {
         for (IEngine engine : engines) {
             engine.init(propertiesUtils, inst);
         }

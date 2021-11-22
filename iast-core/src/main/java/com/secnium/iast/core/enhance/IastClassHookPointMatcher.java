@@ -1,8 +1,8 @@
 package com.secnium.iast.core.enhance;
 
+import com.secnium.iast.core.util.LogUtils;
 import com.secnium.iast.core.util.matcher.ConfigMatcher;
 import org.slf4j.Logger;
-import com.secnium.iast.core.util.LogUtils;
 
 import java.lang.instrument.Instrumentation;
 import java.util.ArrayList;
@@ -23,13 +23,13 @@ public class IastClassHookPointMatcher {
         this.inst = inst;
     }
 
+
     /**
      * 获取已加载的类
      *
      * @return 返回已加载的类的集合
      */
     private Iterator<Class<?>> iteratorForLoadedClasses() {
-        assert inst != null;
         return new Iterator<Class<?>>() {
 
             final Class<?>[] loaded = inst.getAllLoadedClasses();

@@ -3,10 +3,10 @@ package com.secnium.iast.core.enhance.plugins.framework.dubbo;
 import com.secnium.iast.core.enhance.IastContext;
 import com.secnium.iast.core.enhance.plugins.AbstractClassVisitor;
 import com.secnium.iast.core.util.AsmUtils;
+import com.secnium.iast.core.util.LogUtils;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.slf4j.Logger;
-import com.secnium.iast.core.util.LogUtils;
 
 /**
  * @author dongzhiyong@huoxian.cn
@@ -27,7 +27,7 @@ public class DubboAdapter extends AbstractClassVisitor {
     public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
         String signCode = AsmUtils.buildSignature(context.getClassName(), name, desc);
-        if ("doInvoke".equals(name)) {
+        if ("invoke".equals(name)) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Adding Dubbo Source tracking for type {}", context.getClassName());
             }
@@ -37,7 +37,7 @@ public class DubboAdapter extends AbstractClassVisitor {
         }
         if (transformed) {
             if (logger.isDebugEnabled()) {
-                logger.debug("rewrite method {}.{} for listener[id={}]", context.getClassName(), name, context.getListenId());
+                logger.debug("rewrite method {}.{} for listener[match={}]", context.getClassName(), name, context.getMatchClassName());
             }
         }
         return mv;

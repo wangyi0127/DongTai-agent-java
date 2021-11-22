@@ -11,9 +11,11 @@ import org.objectweb.asm.MethodVisitor;
  * @author dongzhiyong@huoxian.cn
  */
 public class ServletDispatcherAdviceAdapter extends AbstractAdviceAdapter {
+    boolean isJakarta;
 
-    public ServletDispatcherAdviceAdapter(MethodVisitor mv, int access, String name, String desc, String signature, IastContext context) {
+    public ServletDispatcherAdviceAdapter(MethodVisitor mv, int access, String name, String desc, String signature, IastContext context, boolean isJakarta) {
         super(mv, access, name, desc, context, "j2ee", signature);
+        this.isJakarta = isJakarta;
     }
 
     @Override
@@ -25,6 +27,8 @@ public class ServletDispatcherAdviceAdapter extends AbstractAdviceAdapter {
         isFirstLevelHttp();
         mv.visitJumpInsn(EQ, elseLabel);
 
+        cloneHttpServletRequest();
+        cloneHttpServletResponse();
         captureMethodState(-1, HookType.HTTP.getValue(), false);
         mark(elseLabel);
     }
@@ -46,6 +50,7 @@ public class ServletDispatcherAdviceAdapter extends AbstractAdviceAdapter {
 
     private void leaveHttp() {
         push(context.getNamespace());
+        loadArg(1);
         invokeStatic(ASM_TYPE_SPY, ASM_METHOD_Spy$leaveHttp);
     }
 
@@ -58,23 +63,23 @@ public class ServletDispatcherAdviceAdapter extends AbstractAdviceAdapter {
      * 克隆Http请求中的HttpServletRequest对象，但是，实际使用中，遇到request对象为多层封装的结果，无法转换为基类：HttpServletRequest，故，此方法弃用
      */
     protected void cloneHttpServletRequest() {
-        // aload_0: 本地第0个引用类型的变量，this对象
-        // aload_1: 加载本地第1个引用行变量，
         push(context.getNamespace());
         loadArg(0);
-        // astore_1: 将栈顶应用型数值存储至第一个本地变量
-        // 调用克隆方法// 替换为克隆方法，并进行类型转换
-        //invokeStatic(ASM_TYPE_SPY, ASM_METHOD_Spy$cloneRequest);
-        // 将
+        push(isJakarta);
+        invokeStatic(ASM_TYPE_SPY, ASM_METHOD_Spy$cloneRequest);
         storeArg(0);
-        //pop();
     }
 
     /**
      * 克隆Http请求中的HttpServletResponse对象，但是，实际使用中，遇到response对象为多层封装的结果，无法转换为基类：HttpServletRequest，故，此方法弃用
+     * DongTai-IAST-Agent
      */
     protected void cloneHttpServletResponse() {
+        push(context.getNamespace());
         loadArg(1);
+        push(isJakarta);
+        invokeStatic(ASM_TYPE_SPY, ASM_METHOD_Spy$cloneResponse);
+        storeArg(1);
     }
 
 }

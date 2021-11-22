@@ -25,7 +25,7 @@ public class IastClassAncestorQuery {
     private static final String BASE_CLASS = "java/lang/Object";
     private final HashSet<String> scannedClassSet = new HashSet<String>();
 
-    public void setLoader(ClassLoader loader) {
+    public synchronized void setLoader(ClassLoader loader) {
         this.loader = loader;
     }
 
@@ -160,7 +160,7 @@ public class IastClassAncestorQuery {
             } catch (Exception e) {
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.put("type", "scan class for family");
-                jsonObject.put("classname", currentClass);
+                jsonObject.put("className", currentClass);
                 jsonObject.put("msg", ThrowableUtils.getStackTrace(e));
                 ErrorLogReport.sendErrorLog(jsonObject.toString());
             }
@@ -182,20 +182,21 @@ public class IastClassAncestorQuery {
             String jarPackageFilePath = url.getFile();
             File jarPackageFile = new File(jarPackageFilePath);
             String packagePath = jarPackageFile.getParent();
-            if (jarPackageFilePath.startsWith("file:") && jarPackageFilePath.contains(".jar!/") && jarPackageFilePath.endsWith(".jar!/")) {
+            if (jarPackageFilePath.startsWith("file:") && jarPackageFilePath.endsWith(".jar!/") && jarPackageFilePath.contains("BOOT-INF") && !scannedClassSet.contains(packagePath)) {
+                scannedClassSet.add(packagePath);
                 jarPackageFilePath = jarPackageFilePath.replace("file:", "");
                 jarPackageFilePath = jarPackageFilePath.substring(0, jarPackageFilePath.indexOf("!/"));
-                if (!scannedClassSet.contains(jarPackageFilePath)) {
-                    scannedClassSet.add(jarPackageFilePath);
-                    ScaScanner.scanWithJarPackage(jarPackageFilePath);
-                }
-            } else if (!jarPackageFilePath.endsWith("agent.jar") && !jarPackageFilePath.endsWith("iast-core.jar") && !jarPackageFilePath.endsWith("iast-inject.jar") && !scannedClassSet.contains(packagePath)) {
+                ScaScanner.scanWithJarPackage(jarPackageFilePath);
+            } else if (jarPackageFilePath.endsWith(".jar") && jarPackageFilePath.contains("WEB-INF") && !scannedClassSet.contains(packagePath)) {
                 scannedClassSet.add(packagePath);
                 File packagePathFile = new File(packagePath);
                 File[] packagePathFiles = packagePathFile.listFiles();
                 for (File tempPackagePathFile : packagePathFiles != null ? packagePathFiles : new File[0]) {
                     ScaScanner.scan(tempPackagePathFile);
                 }
+            }else if (jarPackageFilePath.endsWith(".jar") && jarPackageFilePath.contains("repository") && !scannedClassSet.contains(jarPackageFilePath)){
+                scannedClassSet.add(jarPackageFilePath);
+                ScaScanner.scan(jarPackageFile);
             }
         }
     }

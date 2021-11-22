@@ -1,13 +1,19 @@
 package com.secnium.iast.agent;
 
-import org.apache.commons.cli.*;
-
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+
+import com.secnium.iast.agent.util.LogUtils;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 
 /**
  * @author dongzhiyong@huoxian.cn
@@ -37,18 +43,40 @@ public class Agent {
                 String mode = result.getOptionValue("m");
                 String attachArgs = null;
                 attachArgs = mode;
-                if (appendToolsPath()) {
+
+                String jdkVersion = getJdkVersion();
+                if ("1".equals(jdkVersion) && appendToolsPath()) {
                     AttachLauncher.attach(pid, attachArgs);
-                    System.out.println("engine " + attachArgs + " success for pid: " + pid);
+                    LogUtils.info("engine " + attachArgs + " successfully. pid: " + pid);
                 } else {
-                    System.out.println("engine " + attachArgs + " failed for pid: " + pid);
+                    AttachLauncher.attach(pid, attachArgs);
+                    LogUtils.info("engine " + attachArgs + " successfully. pid: " + pid);
                 }
             } else {
                 formatter.printHelp("java -jar agent.jar", attachOptions, true);
             }
-        } catch (ParseException e) {
-            e.printStackTrace();
+        } catch (Throwable t) {
+            LogUtils.error("Start DongTai Agent failed, exception stack trace: ");
+            t.printStackTrace();
+            System.exit(-1);
         }
+    }
+
+    /**
+     * 判断jdk版本，根据jdk版本下载不同版本的java agent
+     *
+     * @return 1 - jdk 1.6~1.8；2 - jdk 1.9及以上
+     */
+    public static String getJdkVersion() {
+        String jdkVersion = System.getProperty("java.version", "1.8");
+        LogUtils.info("current jdk version is : " + jdkVersion);
+        String[] jdkVersionItem = jdkVersion.split("\\.");
+        boolean isHighJdk = true;
+        if (jdkVersionItem.length > 1 && ("6".equals(jdkVersionItem[1]) || "7".equals(jdkVersionItem[1]) || "8"
+                .equals(jdkVersionItem[1]))) {
+            isHighJdk = false;
+        }
+        return isHighJdk ? "2" : "1";
     }
 
     /**
@@ -75,7 +103,6 @@ public class Agent {
         try {
             File file = new File(new File(System.getProperty("java.home")).getParent(), "lib/tools.jar");
             if (!file.exists()) {
-                System.out.println("Not running with JDK!");
                 throw new RuntimeException("Not running with JDK!");
             }
             URLClassLoader urlClassLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();

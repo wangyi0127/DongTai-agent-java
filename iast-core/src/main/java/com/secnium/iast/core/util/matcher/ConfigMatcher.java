@@ -1,60 +1,51 @@
 package com.secnium.iast.core.util.matcher;
 
 import com.secnium.iast.core.PropertyUtils;
-import com.secnium.iast.core.enhance.IastClassFileTransformer;
 import com.secnium.iast.core.util.ConfigUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
 import com.secnium.iast.core.util.LogUtils;
-
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 /**
  * 各种匹配方法（通过配置文件匹配）
+ *
  * @author dongzhiyong@huoxian.cn
  */
 public class ConfigMatcher {
 
     private final static Logger logger = LogUtils.getLogger(ConfigMatcher.class);
 
-    public final static HashSet<String> SOURCES;
-    private final static HashSet<String> BLACKS;
+    private final static Set<String> BLACKS;
     private final static String[] START_WITH_BLACKS;
     private final static String[] END_WITH_BLACKS;
     private final static Set<String> BLACKS_SET;
     private final static String[] START_ARRAY;
     private final static String[] END_ARRAY;
-    private final static HashSet<String> internalWhiteList;
-    private final static String[] disableExt;
-    private final static AbstractMatcher internalClass = new InternalClass();
-    private final static AbstractMatcher frameworkClass = new FrameworkClass();
-    private final static AbstractMatcher serverClass = new ServerClass();
-    private final static ClassLoader iastClassLoader = IastClassFileTransformer.class.getClassLoader();
+    private final static String[] DISABLE_EXT;
+    private final static AbstractMatcher INTERNAL_CLASS = new InternalClass();
+    private final static AbstractMatcher FRAMEWORK_CLASS = new FrameworkClass();
+    private final static AbstractMatcher SERVER_CLASS = new ServerClass();
 
 
-    public static boolean disableExtention(String uri) {
+    /**
+     * 检查后缀黑名单
+     *
+     * @param uri
+     * @return
+     */
+    public static boolean disableExtension(String uri) {
         if (uri == null || uri.isEmpty()) {
             return false;
         }
-        return StringUtils.endsWithAny(uri, disableExt);
+        return StringUtils.endsWithAny(uri, DISABLE_EXT);
     }
 
-    public static boolean internalMatch(String classname) {
-        return internalWhiteList.contains(classname);
-    }
-
-    private static boolean inHookBlacklist(String className, boolean internal) {
-        if (internal) {
-            return StringUtils.startsWithAny(className, START_ARRAY)
-                    || StringUtils.endsWithAny(className, END_ARRAY)
-                    || BLACKS_SET.contains(className);
-        } else {
-            String internalClassName = className.replace(".", "/");
-            return StringUtils.startsWithAny(internalClassName, START_ARRAY)
-                    || StringUtils.endsWithAny(internalClassName, END_ARRAY)
-                    || BLACKS_SET.contains(internalClassName);
-        }
+    private static boolean inHookBlacklist(String className) {
+        return BLACKS_SET.contains(className)
+                || StringUtils.startsWithAny(className, START_ARRAY)
+                || StringUtils.endsWithAny(className, END_ARRAY);
     }
 
     public static PropagatorType blackFunc(final String signature) {
@@ -68,71 +59,60 @@ public class ConfigMatcher {
     }
 
     /**
-     * 判断当前类是否在hook点黑名单。hook黑名单：
-     * 1.agent自身的类；
-     * 2.已知的框架类、中间件类；
-     * 3.类名为null；
-     * 4.JDK内部类且不在hook点配置白名单中；
-     * 5.接口
+     * 判断当前类是否在hook点黑名单。hook黑名单： 1.agent自身的类； 2.已知的框架类、中间件类； 3.类名为null； 4.JDK内部类且不在hook点配置白名单中； 5.接口
      *
      * @param className jvm内部类名，如：java/lang/Runtime
      * @param loader    当前类的classLoader
      * @return 是否支持hook
      */
     public static boolean isHookPoint(String className, ClassLoader loader) {
-        boolean hook = true;
-        // 类名为null的不hook
         if (className == null) {
-            hook = false;
+            return false;
         }
 
-        // com.secnium.iast的类不hook
         // todo: 计算startsWith、contains与正则匹配的时间损耗
-        if (hook && (className.startsWith("com/secnium/iast/") || className.startsWith("java/lang/iast/"))) {
-            hook = false;
-            logger.trace("ignore transform {} in loader={}. Reason: classname is startswith com/secnium/iast/", className, loader);
+        if (className.startsWith("com/secnium/iast/")
+                || className.startsWith("java/lang/iast/")
+                || className.startsWith("cn/huoxian/iast/")
+        ) {
+            logger.trace("ignore transform {} in loader={}. Reason: classname is startswith com/secnium/iast/",
+                    className, loader);
+            return false;
         }
 
-        // CGLIB$$的类不hook
-        if (hook && className.contains("CGLIB$$")) {
-            hook = false;
-            logger.trace("ignore transform {} in loader={}. Reason: classname is a aop class by CGLIB", className, loader);
+        if (className.contains("CGLIB$$")) {
+            logger.trace("ignore transform {} in loader={}. Reason: classname is a aop class by CGLIB", className,
+                    loader);
+            return false;
         }
 
-        //$$Lambda$ 针对Lambda进行hook会导致Spring框架中出现多个NoClassDefFoundError错误
-        if (hook && className.contains("$$Lambda$")) {
-            hook = false;
-            logger.trace("ignore transform {} in loader={}. Reason: classname is a aop class by Lambda", className, loader);
+        if (className.contains("$$Lambda$")) {
+            logger.trace("ignore transform {} in loader={}. Reason: classname is a aop class by Lambda", className,
+                    loader);
+            return false;
         }
 
-        //$$Lambda$
-        if (hook && className.contains("_$$_jvst")) {
-            hook = false;
+        if (className.contains("_$$_jvst")) {
             logger.trace("ignore transform {} in loader={}. Reason: classname is a aop class", className, loader);
+            return false;
         }
 
-
-        // 这里过滤掉Sandbox所需要的类，防止ClassCircularityError的发生
-        if (hook && ConfigMatcher.inHookBlacklist(className, true)) {
-            hook = false;
+        if (ConfigMatcher.inHookBlacklist(className)) {
             logger.trace("ignore transform {} in loader={}. reason: class is in blacklist", className, loader);
+            return false;
         }
-        return hook;
+        return true;
     }
 
-    public static boolean isAppClass(String classname) {
-        return !(internalClass.match(classname) || frameworkClass.match(classname) || serverClass.match(classname));
+    public static boolean isAppClass(String className) {
+        return !(INTERNAL_CLASS.match(className) || FRAMEWORK_CLASS.match(className) || SERVER_CLASS.match(className));
     }
 
     static {
         final PropertyUtils cfg = PropertyUtils.getInstance();
-        String sourcesFile = cfg.getSourceFilePath();
         String blackListFuncFile = cfg.getBlackFunctionFilePath();
         String blackList = cfg.getBlackClassFilePath();
-        String whiteList = cfg.getWhiteClassFilePath();
         String disableExtList = cfg.getBlackExtFilePath();
-
-        SOURCES = ConfigUtils.loadConfigFromFile(sourcesFile)[0];
 
         HashSet<String>[] items = ConfigUtils.loadConfigFromFile(blackListFuncFile);
         BLACKS = items[0];
@@ -144,10 +124,7 @@ public class ConfigMatcher {
         END_ARRAY = items[2].toArray(new String[0]);
         BLACKS_SET = items[0];
 
-        items = ConfigUtils.loadConfigFromFile(whiteList);
-        internalWhiteList = items[0];
-
-        disableExt = ConfigUtils.loadExtConfigFromFile(disableExtList);
+        DISABLE_EXT = ConfigUtils.loadExtConfigFromFile(disableExtList);
 
     }
 

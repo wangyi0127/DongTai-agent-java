@@ -11,18 +11,17 @@ public class ReportConstantTest {
         report.put(ReportConstant.REPORT_KEY, ReportConstant.REPORT_HEART_BEAT);
         report.put(ReportConstant.REPORT_VALUE_KEY, detail);
 
-        detail.put(ReportConstant.HEART_BEAT_PID, 20102);
-        detail.put(ReportConstant.HEART_BEAT_NETWORK, 20102);
-        detail.put(ReportConstant.HEART_BEAT_MEMORY, 20102);
-        detail.put(ReportConstant.HEART_BEAT_CPU, 20102);
-        detail.put(ReportConstant.HEART_BEAT_DISK, 20102);
-        detail.put(ReportConstant.HEART_BEAT_REQ_COUNT, 20102);
-        detail.put(ReportConstant.HEART_BEAT_WEB_SERVER_NAME, 20102);
-        detail.put(ReportConstant.HEART_BEAT_WEB_SERVER_VERSION, 20102);
-        detail.put(ReportConstant.HEART_BEAT_WEB_SERVER_PATH, 20102);
-        detail.put(ReportConstant.HEART_BEAT_WEB_SERVER_HOSTNAME, 20102);
-        detail.put(ReportConstant.HEART_BEAT_WEB_SERVER_IP, 20102);
-        detail.put(ReportConstant.HEART_BEAT_WEB_SERVER_PORT, 20102);
+        detail.put(ReportConstant.PID, 20102);
+        detail.put(ReportConstant.NETWORK, 20102);
+        detail.put(ReportConstant.MEMORY, 20102);
+        detail.put(ReportConstant.CPU, 20102);
+        detail.put(ReportConstant.DISK, 20102);
+        detail.put(ReportConstant.REQ_COUNT, 20102);
+        detail.put(ReportConstant.CONTAINER_NAME, 20102);
+        detail.put(ReportConstant.CONTAINER_VERSION, 20102);
+        detail.put(ReportConstant.SERVER_PATH, 20102);
+        detail.put(ReportConstant.SERVER_ADDR, 20102);
+        detail.put(ReportConstant.SERVER_PORT, 20102);
 
         System.out.println("心跳数据报告：");
         System.out.println(report.toString());
@@ -54,16 +53,12 @@ public class ReportConstantTest {
         report.put(ReportConstant.REPORT_KEY, ReportConstant.REPORT_VULN_NORNAL);
         report.put(ReportConstant.REPORT_VALUE_KEY, detail);
 
-        detail.put(ReportConstant.COMMON_APP_NAME, 20102);
-        detail.put(ReportConstant.COMMON_SERVER_NAME, 20102);
-        detail.put(ReportConstant.COMMON_SERVER_PORT, 20102);
-        detail.put(ReportConstant.COMMON_REMOTE_IP, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_PROTOCOL, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_SCHEME, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_METHOD, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_URL, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_QUERY_STRING, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_BODY, 20102);
+        detail.put(ReportConstant.PROTOCOL, 20102);
+        detail.put(ReportConstant.SCHEME, 20102);
+        detail.put(ReportConstant.METHOD, 20102);
+        detail.put(ReportConstant.URL, 20102);
+        detail.put(ReportConstant.QUERY_STRING, 20102);
+        detail.put(ReportConstant.REQ_BODY, 20102);
         detail.put(ReportConstant.VULN_CALLER, 20102);
 
         System.out.println("普通漏洞数据报告：");
@@ -77,16 +72,12 @@ public class ReportConstantTest {
         report.put(ReportConstant.REPORT_KEY, ReportConstant.REPORT_VULN_NORNAL);
         report.put(ReportConstant.REPORT_VALUE_KEY, detail);
 
-        detail.put(ReportConstant.COMMON_APP_NAME, 20102);
-        detail.put(ReportConstant.COMMON_SERVER_NAME, 20102);
-        detail.put(ReportConstant.COMMON_SERVER_PORT, 20102);
-        detail.put(ReportConstant.COMMON_REMOTE_IP, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_PROTOCOL, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_SCHEME, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_METHOD, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_URL, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_QUERY_STRING, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_BODY, 20102);
+        detail.put(ReportConstant.PROTOCOL, 20102);
+        detail.put(ReportConstant.SCHEME, 20102);
+        detail.put(ReportConstant.METHOD, 20102);
+        detail.put(ReportConstant.URL, 20102);
+        detail.put(ReportConstant.QUERY_STRING, 20102);
+        detail.put(ReportConstant.REQ_BODY, 20102);
         detail.put(ReportConstant.VULN_CALLER, 20102);
 
         System.out.println("污点跟踪漏洞数据报告：");
@@ -100,16 +91,12 @@ public class ReportConstantTest {
         report.put(ReportConstant.REPORT_KEY, ReportConstant.REPORT_VULN_NORNAL);
         report.put(ReportConstant.REPORT_VALUE_KEY, detail);
 
-        detail.put(ReportConstant.COMMON_APP_NAME, 20102);
-        detail.put(ReportConstant.COMMON_SERVER_NAME, 20102);
-        detail.put(ReportConstant.COMMON_SERVER_PORT, 20102);
-        detail.put(ReportConstant.COMMON_REMOTE_IP, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_PROTOCOL, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_SCHEME, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_METHOD, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_URL, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_QUERY_STRING, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_BODY, 20102);
+        detail.put(ReportConstant.PROTOCOL, 20102);
+        detail.put(ReportConstant.SCHEME, 20102);
+        detail.put(ReportConstant.METHOD, 20102);
+        detail.put(ReportConstant.URL, 20102);
+        detail.put(ReportConstant.QUERY_STRING, 20102);
+        detail.put(ReportConstant.REQ_BODY, 20102);
         detail.put(ReportConstant.VULN_CALLER, 20102);
 
         System.out.println("越权漏洞数据报告：");
@@ -123,16 +110,12 @@ public class ReportConstantTest {
         report.put(ReportConstant.REPORT_KEY, ReportConstant.REPORT_VULN_NORNAL);
         report.put(ReportConstant.REPORT_VALUE_KEY, detail);
 
-        detail.put(ReportConstant.COMMON_APP_NAME, 20102);
-        detail.put(ReportConstant.COMMON_SERVER_NAME, 20102);
-        detail.put(ReportConstant.COMMON_SERVER_PORT, 20102);
-        detail.put(ReportConstant.COMMON_REMOTE_IP, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_PROTOCOL, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_SCHEME, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_METHOD, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_URL, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_QUERY_STRING, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_BODY, 20102);
+        detail.put(ReportConstant.PROTOCOL, 20102);
+        detail.put(ReportConstant.SCHEME, 20102);
+        detail.put(ReportConstant.METHOD, 20102);
+        detail.put(ReportConstant.URL, 20102);
+        detail.put(ReportConstant.QUERY_STRING, 20102);
+        detail.put(ReportConstant.REQ_BODY, 20102);
         detail.put(ReportConstant.VULN_CALLER, 20102);
 
         System.out.println("新增权限数据报告：");
@@ -146,16 +129,12 @@ public class ReportConstantTest {
         report.put(ReportConstant.REPORT_KEY, ReportConstant.REPORT_VULN_NORNAL);
         report.put(ReportConstant.REPORT_VALUE_KEY, detail);
 
-        detail.put(ReportConstant.COMMON_APP_NAME, 20102);
-        detail.put(ReportConstant.COMMON_SERVER_NAME, 20102);
-        detail.put(ReportConstant.COMMON_SERVER_PORT, 20102);
-        detail.put(ReportConstant.COMMON_REMOTE_IP, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_PROTOCOL, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_SCHEME, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_METHOD, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_URL, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_QUERY_STRING, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_BODY, 20102);
+        detail.put(ReportConstant.PROTOCOL, 20102);
+        detail.put(ReportConstant.SCHEME, 20102);
+        detail.put(ReportConstant.METHOD, 20102);
+        detail.put(ReportConstant.URL, 20102);
+        detail.put(ReportConstant.QUERY_STRING, 20102);
+        detail.put(ReportConstant.REQ_BODY, 20102);
         detail.put(ReportConstant.VULN_CALLER, 20102);
 
         System.out.println("权限更新数据报告：");
@@ -169,16 +148,12 @@ public class ReportConstantTest {
         report.put(ReportConstant.REPORT_KEY, ReportConstant.REPORT_VULN_NORNAL);
         report.put(ReportConstant.REPORT_VALUE_KEY, detail);
 
-        detail.put(ReportConstant.COMMON_APP_NAME, 20102);
-        detail.put(ReportConstant.COMMON_SERVER_NAME, 20102);
-        detail.put(ReportConstant.COMMON_SERVER_PORT, 20102);
-        detail.put(ReportConstant.COMMON_REMOTE_IP, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_PROTOCOL, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_SCHEME, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_METHOD, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_URL, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_QUERY_STRING, 20102);
-        detail.put(ReportConstant.COMMON_HTTP_BODY, 20102);
+        detail.put(ReportConstant.PROTOCOL, 20102);
+        detail.put(ReportConstant.SCHEME, 20102);
+        detail.put(ReportConstant.METHOD, 20102);
+        detail.put(ReportConstant.URL, 20102);
+        detail.put(ReportConstant.QUERY_STRING, 20102);
+        detail.put(ReportConstant.REQ_BODY, 20102);
         detail.put(ReportConstant.VULN_CALLER, 20102);
 
         System.out.println("错误日志数据报告：");

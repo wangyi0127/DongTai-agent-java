@@ -4,23 +4,21 @@ import com.secnium.iast.core.PropertyUtils;
 import com.secnium.iast.core.engines.IEngine;
 import com.secnium.iast.core.enhance.IastClassFileTransformer;
 import com.secnium.iast.core.report.ErrorLogReport;
-import com.secnium.iast.core.util.ThrowableUtils;
-import org.slf4j.Logger;
 import com.secnium.iast.core.util.LogUtils;
-
+import com.secnium.iast.core.util.ThrowableUtils;
 import java.lang.instrument.Instrumentation;
+import org.slf4j.Logger;
 
 /**
  * @author dongzhiyong@huoxian.cn
  */
 public class TransformEngine implements IEngine {
+
     private final Logger logger = LogUtils.getLogger(getClass());
-    private PropertyUtils cfg;
     private Instrumentation inst;
 
     @Override
     public void init(PropertyUtils cfg, Instrumentation inst) {
-        this.cfg = cfg;
         this.inst = inst;
     }
 

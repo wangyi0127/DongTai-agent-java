@@ -196,7 +196,12 @@ public class IastHookRuleModel {
      */
     public static int getRuleTypeValueByFramework(String framework) {
         if (instance != null) {
-            return instance.hooksValue.get(framework);
+            try {
+                return instance.hooksValue.get(framework);
+            } catch (java.lang.NullPointerException e) {
+                //规则待更新
+                return -1;
+            }
         } else {
             return -1;
         }
@@ -225,9 +230,9 @@ public class IastHookRuleModel {
         }
 
         private static JSONArray loadRemoteRule() {
-            String respRaw = HttpClientUtils.sendGet(Constants.API_HOOK_PROFILE, null, null);
+            StringBuilder respRaw = HttpClientUtils.sendGet(Constants.API_HOOK_PROFILE, null, null);
             if (respRaw != null) {
-                JSONObject resp = new JSONObject(respRaw);
+                JSONObject resp = new JSONObject(respRaw.toString());
                 return resp.getJSONArray("data");
             }
             return null;

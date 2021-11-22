@@ -1,13 +1,27 @@
 package com.secnium.iast.core;
 
+import com.secnium.iast.core.handler.IastClassLoader;
+import com.secnium.iast.core.handler.models.IastReplayModel;
+import com.secnium.iast.core.handler.models.MethodEvent;
 import com.secnium.iast.core.middlewarerecognition.IastServer;
 import com.secnium.iast.core.middlewarerecognition.ServerDetect;
-import com.secnium.iast.core.threadlocalpool.*;
-import org.slf4j.Logger;
+import com.secnium.iast.core.threadlocalpool.BooleanTheadLocal;
+import com.secnium.iast.core.threadlocalpool.IastScopeTracker;
+import com.secnium.iast.core.threadlocalpool.IastServerPort;
+import com.secnium.iast.core.threadlocalpool.IastTaintHashCodes;
+import com.secnium.iast.core.threadlocalpool.IastTaintPool;
+import com.secnium.iast.core.threadlocalpool.IastTrackMap;
+import com.secnium.iast.core.threadlocalpool.RequestContext;
 import com.secnium.iast.core.util.LogUtils;
-
+import java.io.File;
 import java.lang.instrument.Instrumentation;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import org.slf4j.Logger;
 
 /**
  * 存储全局信息
@@ -19,10 +33,13 @@ public class EngineManager {
     private static final Logger logger = LogUtils.getLogger(EngineManager.class);
     private static EngineManager instance;
     private final PropertyUtils cfg;
+    public static Integer AGENT_ID;
+    public static String AGENT_PATH;
 
+    private static final BooleanTheadLocal AGENT_STATUS = new BooleanTheadLocal(false);
+    private static final BooleanTheadLocal TRANSFORM_STATE = new BooleanTheadLocal(false);
     public static final BooleanTheadLocal ENTER_HTTP_ENTRYPOINT = new BooleanTheadLocal(false);
     public static final RequestContext REQUEST_CONTEXT = new RequestContext();
-    public static final IastResponseCache RESPONSE_CACHE = new IastResponseCache();
     public static final IastTrackMap TRACK_MAP = new IastTrackMap();
     public static final IastTaintPool TAINT_POOL = new IastTaintPool();
     public static final IastTaintHashCodes TAINT_HASH_CODES = new IastTaintHashCodes();
@@ -31,11 +48,34 @@ public class EngineManager {
     private static final BooleanTheadLocal LINGZHI_RUNNING = new BooleanTheadLocal(false);
     public static IastServer SERVER;
 
-    private static final ConcurrentLinkedQueue<String> REPORTS = new ConcurrentLinkedQueue<String>();
+    private static final ArrayBlockingQueue<String> REPORTS = new ArrayBlockingQueue<String>(4096);
+    private static final ArrayBlockingQueue<String> METHOD_REPORT = new ArrayBlockingQueue<String>(4096);
+    private static final ArrayBlockingQueue<IastReplayModel> REPLAY_QUEUE = new ArrayBlockingQueue<IastReplayModel>(
+            4096);
 
     private static boolean logined = false;
     private static int reqCounts = 0;
     private static int enableLingzhi = 0;
+
+    public static void agentStarted() {
+        AGENT_STATUS.set(true);
+    }
+
+    public static boolean isAgentStarted() {
+        return AGENT_STATUS.get() != null && AGENT_STATUS.get();
+    }
+
+    public static void enterTransform() {
+        TRANSFORM_STATE.set(true);
+    }
+
+    public static void leaveTransform() {
+        TRANSFORM_STATE.set(false);
+    }
+
+    public static boolean isTransforming() {
+        return TRANSFORM_STATE.get() != null && TRANSFORM_STATE.get();
+    }
 
     public static void turnOnLingzhi() {
         LINGZHI_RUNNING.set(true);
@@ -45,6 +85,11 @@ public class EngineManager {
         LINGZHI_RUNNING.set(false);
     }
 
+    /**
+     * Determine whether the current code flow enters the engine processing logic
+     *
+     * @return
+     */
     public static Boolean isLingzhiRunning() {
         return LINGZHI_RUNNING.get() != null && LINGZHI_RUNNING.get();
     }
@@ -68,12 +113,13 @@ public class EngineManager {
     }
 
     private EngineManager(final PropertyUtils cfg,
-                          final Instrumentation inst) {
+            final Instrumentation inst) {
         this.cfg = cfg;
 
         ServerDetect serverDetect = ServerDetect.getInstance();
         if (serverDetect.getWebserver() != null) {
-            logger.info("WebServer [ name={}, path={} ]", serverDetect.getWebserver().getName(), serverDetect.getWebServerPath());
+            logger.info("WebServer [ name={}, path={} ]", serverDetect.getWebserver().getName(),
+                    serverDetect.getWebServerPath());
         }
     }
 
@@ -84,7 +130,6 @@ public class EngineManager {
         EngineManager.LOGIN_LOGIC_WEIGHT.remove();
         EngineManager.ENTER_HTTP_ENTRYPOINT.remove();
         EngineManager.REQUEST_CONTEXT.remove();
-        EngineManager.RESPONSE_CACHE.remove();
         EngineManager.TRACK_MAP.remove();
         EngineManager.TAINT_POOL.remove();
         EngineManager.TAINT_HASH_CODES.remove();
@@ -148,6 +193,42 @@ public class EngineManager {
         return !REPORTS.isEmpty();
     }
 
+    public static int getReportQueueSize() {
+        return REPORTS.size();
+    }
+
+    public static boolean hasReplayData() {
+        return !REPLAY_QUEUE.isEmpty();
+    }
+
+    public static IastReplayModel getReplayModel() {
+        return REPLAY_QUEUE.poll();
+    }
+
+    public static void sendReplayModel(IastReplayModel replayModel) {
+        REPLAY_QUEUE.offer(replayModel);
+    }
+
+    public static int getReplayQueueSize() {
+        return REPLAY_QUEUE.size();
+    }
+
+    public static void sendMethodReport(String report) {
+        METHOD_REPORT.offer(report);
+    }
+
+    public static String getMethodReport() {
+        return METHOD_REPORT.poll();
+    }
+
+    public static boolean hasMethodReport() {
+        return !METHOD_REPORT.isEmpty();
+    }
+
+    public static int getMethodReportQueueSize() {
+        return METHOD_REPORT.size();
+    }
+
     public static boolean getIsLoginLogic() {
         return LOGIN_LOGIC_WEIGHT.get() != null && LOGIN_LOGIC_WEIGHT.get().equals(2);
     }
@@ -188,4 +269,41 @@ public class EngineManager {
         return instance.cfg.isEnableDumpClass();
     }
 
+    public static Integer getAgentId() {
+        return AGENT_ID;
+    }
+
+    public static void setAgentId(Integer agentId) {
+        AGENT_ID = agentId;
+    }
+
+    public static String getAgentPath() {
+        return AGENT_PATH;
+    }
+
+    public static void setAgentPath(String agentPath) {
+        AGENT_PATH = agentPath;
+    }
+
+    public static void enterHttpEntry(Map<String, Object> requestMeta) {
+        if (null == SERVER) {
+            SERVER = new IastServer(
+                    (String) requestMeta.get("serverName"),
+                    (Integer) requestMeta.get("serverPort"),
+                    true
+            );
+            try {
+                ClassLoader iastClassLoader = new IastClassLoader(EngineManager.class.getClassLoader(), new URL[]{new File(getAgentPath()).toURI().toURL()});
+                Class<?> proxyClass = iastClassLoader.loadClass("com.secnium.iast.agent.report.AgentRegisterReport");
+                Method reportServerMessage = proxyClass.getDeclaredMethod("reportServerMessage", String.class, Integer.class);
+                reportServerMessage.invoke(null, SERVER.getServerAddr(), SERVER.getServerPort());
+            } catch (Exception ignored) {
+            }
+        }
+        ENTER_HTTP_ENTRYPOINT.enterHttpEntryPoint();
+        REQUEST_CONTEXT.set(requestMeta);
+        TRACK_MAP.set(new HashMap<Integer, MethodEvent>(1024));
+        TAINT_POOL.set(new HashSet<Object>());
+        TAINT_HASH_CODES.set(new HashSet<Integer>());
+    }
 }

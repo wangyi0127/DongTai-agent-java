@@ -60,7 +60,10 @@ public class Injecter {
                             final Method ENTER_HTTP,
                             final Method LEAVE_HTTP,
                             final Method IS_FIRST_LEVEL_HTTP,
-                            final Method HAS_TAINT
+                            final Method HAS_TAINT,
+                            final Method CLONE_REQUEST,
+                            final Method IS_REPLAY_REQUEST,
+                            final Method CLONE_RESPONSE
     ) {
         NAMESPACE_METHOD_HOOK_MAP.put(
                 namespace,
@@ -80,7 +83,10 @@ public class Injecter {
                         ENTER_HTTP,
                         LEAVE_HTTP,
                         IS_FIRST_LEVEL_HTTP,
-                        HAS_TAINT
+                        HAS_TAINT,
+                        CLONE_REQUEST,
+                        IS_REPLAY_REQUEST,
+                        CLONE_RESPONSE
                 )
         );
     }
@@ -130,8 +136,8 @@ public class Injecter {
                                          final Object[] argumentArray,
                                          final String namespace,
                                          final String framework,
-                                         final int listenerId,
                                          final String javaClassName,
+                                         final String matchClassName,
                                          final String javaMethodName,
                                          final String javaMethodDesc,
                                          final Object target,
@@ -144,8 +150,7 @@ public class Injecter {
             try {
                 final MethodHook hook = NAMESPACE_METHOD_HOOK_MAP.get(namespace);
                 if (null != hook) {
-                    hook.ON_BEFORE_METHOD.invoke(null,
-                            listenerId, framework, javaClassName, javaMethodName, javaMethodDesc, target, argumentArray, retValue, signCode, isStatic, hookType);
+                    hook.ON_BEFORE_METHOD.invoke(null, framework, javaClassName, matchClassName, javaMethodName, javaMethodDesc, target, argumentArray, retValue, signCode, isStatic, hookType);
                 }
             } catch (Throwable cause) {
                 handleException(cause);
@@ -414,14 +419,14 @@ public class Injecter {
         }
     }
 
-    public static void leaveHttp(final String namespace) {
+    public static void leaveHttp(final String namespace, final Object response) {
         final Thread thread = Thread.currentThread();
         if (!selfCallBarrier.isEnter(thread)) {
             final SelfCallBarrier.Node node = selfCallBarrier.enter(thread);
             try {
                 final MethodHook hook = NAMESPACE_METHOD_HOOK_MAP.get(namespace);
                 if (null != hook) {
-                    hook.LEAVE_HTTP.invoke(null);
+                    hook.LEAVE_HTTP.invoke(null, response);
                 }
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
@@ -451,6 +456,76 @@ public class Injecter {
             }
         }
         return false;
+    }
+
+    /**
+     * 克隆Request对象
+     *
+     * @param namespace
+     * @param req
+     * @return
+     * @throws Throwable
+     */
+    public static Object cloneRequest(final String namespace, Object req, boolean isJakarta) throws Throwable {
+        final Thread thread = Thread.currentThread();
+        if (!selfCallBarrier.isEnter(thread)) {
+            final SelfCallBarrier.Node node = selfCallBarrier.enter(thread);
+            try {
+                final MethodHook hook = NAMESPACE_METHOD_HOOK_MAP.get(namespace);
+                if (null != hook) {
+                    return hook.CLONE_REQUEST.invoke(null, req, isJakarta);
+                }
+            } catch (Throwable cause) {
+                handleException(cause);
+            } finally {
+                selfCallBarrier.exit(thread, node);
+            }
+        }
+        return req;
+    }
+
+    public static boolean isReplayRequest(final String namespace) throws Throwable {
+        final Thread thread = Thread.currentThread();
+        if (!selfCallBarrier.isEnter(thread)) {
+            final SelfCallBarrier.Node node = selfCallBarrier.enter(thread);
+            try {
+                final MethodHook hook = NAMESPACE_METHOD_HOOK_MAP.get(namespace);
+                if (null != hook) {
+                    return (Boolean) hook.IS_REPLAY_REQUEST.invoke(null);
+                }
+            } catch (Throwable cause) {
+                handleException(cause);
+            } finally {
+                selfCallBarrier.exit(thread, node);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 克隆Response对象
+     *
+     * @param namespace
+     * @param response
+     * @return
+     * @throws Throwable
+     */
+    public static Object cloneResponse(final String namespace, Object response, boolean isJakarta) throws Throwable {
+        final Thread thread = Thread.currentThread();
+        if (!selfCallBarrier.isEnter(thread)) {
+            final SelfCallBarrier.Node node = selfCallBarrier.enter(thread);
+            try {
+                final MethodHook hook = NAMESPACE_METHOD_HOOK_MAP.get(namespace);
+                if (null != hook) {
+                    return hook.CLONE_RESPONSE.invoke(null, response, isJakarta);
+                }
+            } catch (Throwable cause) {
+                handleException(cause);
+            } finally {
+                selfCallBarrier.exit(thread, node);
+            }
+        }
+        return response;
     }
 
     /**
@@ -632,6 +707,9 @@ public class Injecter {
         private final Method LEAVE_HTTP;
         private final Method IS_TOP_LEVEL_HTTP;
         private final Method HAS_TAINT;
+        private final Method CLONE_REQUEST;
+        private final Method IS_REPLAY_REQUEST;
+        private final Method CLONE_RESPONSE;
 
         public MethodHook(final Method on_before_method,
                           final Method on_return_method,
@@ -648,7 +726,10 @@ public class Injecter {
                           final Method ENTER_HTTP,
                           final Method LEAVE_HTTP,
                           final Method IS_TOP_LEVEL_HTTP,
-                          final Method HAS_TAINT) {
+                          final Method HAS_TAINT,
+                          final Method CLONE_REQUEST,
+                          final Method IS_REPLAY_REQUEST,
+                          final Method CLONE_RESPONSE) {
             assert null != on_before_method;
             assert null != on_return_method;
             assert null != on_throws_method;
@@ -668,6 +749,9 @@ public class Injecter {
             this.LEAVE_HTTP = LEAVE_HTTP;
             this.IS_TOP_LEVEL_HTTP = IS_TOP_LEVEL_HTTP;
             this.HAS_TAINT = HAS_TAINT;
+            this.CLONE_REQUEST = CLONE_REQUEST;
+            this.IS_REPLAY_REQUEST = IS_REPLAY_REQUEST;
+            this.CLONE_RESPONSE = CLONE_RESPONSE;
         }
     }
 

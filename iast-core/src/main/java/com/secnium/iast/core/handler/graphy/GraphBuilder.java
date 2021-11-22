@@ -3,14 +3,16 @@ package com.secnium.iast.core.handler.graphy;
 import com.secnium.iast.core.EngineManager;
 import com.secnium.iast.core.PropertyUtils;
 import com.secnium.iast.core.enhance.IastClassAncestorQuery;
+import com.secnium.iast.core.handler.controller.impl.HttpImpl;
 import com.secnium.iast.core.handler.models.MethodEvent;
 import com.secnium.iast.core.handler.vulscan.ReportConstant;
-import com.secnium.iast.core.report.AgentRegisterReport;
-import com.secnium.iast.core.util.base64.Base64Utils;
-import com.secnium.iast.core.util.http.HttpRequest;
+import com.secnium.iast.core.util.LogUtils;
+import com.secnium.iast.core.util.base64.Base64Encoder;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,10 +22,24 @@ import java.util.Map;
  */
 public class GraphBuilder {
 
-    public static void buildAndReport() {
+    public static void buildAndReport(Object response) {
         List<GraphNode> nodeList = build();
-        String report = convertToReport(nodeList);
-        EngineManager.sendNewReport(report);
+        String report = convertToReport(nodeList, response);
+        EngineManager.sendMethodReport(report);
+    }
+
+    private static Map<String, Object> getResponseMeta(Object response) {
+        Map<String, Object> responseMeta = null;
+        try {
+            responseMeta = HttpImpl.getResponseMeta(response);
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        return responseMeta;
     }
 
     /**
@@ -48,9 +64,10 @@ public class GraphBuilder {
                             event.getCallerMethod(),
                             event.getCallerLine(),
                             event.object != null ? IastClassAncestorQuery.getFamilyFromClass(event.object.getClass().getName().replace("\\.", "/")) : null,
-                            event.getJavaClassName(),
-                            event.getJavaMethodName(),
-                            event.getJavaMethodDesc(),
+                            event.getMatchClassName(),
+                            event.getOriginClassName(),
+                            event.getMethodName(),
+                            event.getMethodDesc(),
                             "",
                             "",
                             event.getSourceHashes(),
@@ -63,8 +80,9 @@ public class GraphBuilder {
         return nodeList;
     }
 
-    public static String convertToReport(List<GraphNode> nodeList) {
-        HttpRequest request = EngineManager.REQUEST_CONTEXT.get();
+    public static String convertToReport(List<GraphNode> nodeList, Object response) {
+        Map<String, Object> requestMeta = EngineManager.REQUEST_CONTEXT.get();
+        Map<String, Object> responseMeta = getResponseMeta(response);
         JSONObject report = new JSONObject();
         JSONObject detail = new JSONObject();
         JSONArray methodPool = new JSONArray();
@@ -72,19 +90,21 @@ public class GraphBuilder {
         report.put(ReportConstant.REPORT_KEY, ReportConstant.REPORT_VULN_SAAS_POOL);
         report.put(ReportConstant.REPORT_VALUE_KEY, detail);
 
-        detail.put(ReportConstant.AGENT_NAME, AgentRegisterReport.getAgentToken());
-        detail.put(ReportConstant.PROJECT_NAME, AgentRegisterReport.getProjectName());
-        detail.put(ReportConstant.COMMON_REMOTE_IP, request.getRemoteAddr());
-        detail.put(ReportConstant.COMMON_HTTP_PROTOCOL, request.getProtocol());
-        detail.put(ReportConstant.COMMON_HTTP_SCHEME, request.getScheme());
-        detail.put(ReportConstant.COMMON_HTTP_METHOD, request.getMethod());
-        detail.put(ReportConstant.COMMON_HTTP_SECURE, request.isSecure());
-        detail.put(ReportConstant.COMMON_HTTP_URL, request.getRequestURL());
-        detail.put(ReportConstant.COMMON_HTTP_URI, request.getRequestURI());
-        detail.put(ReportConstant.COMMON_HTTP_CLIENT_IP, request.getRemoteAddr());
-        detail.put(ReportConstant.COMMON_HTTP_QUERY_STRING, request.getQueryString());
-        detail.put(ReportConstant.COMMON_HTTP_REQ_HEADER, Base64Utils.encodeBase64String(request.getHeadersValue().getBytes()).replaceAll("\n", ""));
-        detail.put(ReportConstant.COMMON_HTTP_CONTEXT_PATH, request.getContextPath());
+        detail.put(ReportConstant.AGENT_ID, EngineManager.getAgentId());
+        detail.put(ReportConstant.PROTOCOL, requestMeta.get("protocol"));
+        detail.put(ReportConstant.SCHEME, requestMeta.get("scheme"));
+        detail.put(ReportConstant.METHOD, requestMeta.get("method"));
+        detail.put(ReportConstant.SECURE, requestMeta.get("secure"));
+        detail.put(ReportConstant.URL, requestMeta.get("requestURL").toString());
+        detail.put(ReportConstant.URI, requestMeta.get("requestURI"));
+        detail.put(ReportConstant.CLIENT_IP, requestMeta.get("remoteAddr"));
+        detail.put(ReportConstant.QUERY_STRING, requestMeta.get("queryString"));
+        detail.put(ReportConstant.REQ_HEADER, Base64Encoder.encodeBase64String(requestMeta.get("headers").toString().getBytes()).replaceAll("\n", ""));
+        detail.put(ReportConstant.REQ_BODY, requestMeta.get("body"));
+        detail.put(ReportConstant.RES_HEADER, responseMeta == null ? "" : Base64Encoder.encodeBase64String(responseMeta.get("headers").toString().getBytes()).replaceAll("\n", ""));
+        detail.put(ReportConstant.RES_BODY, responseMeta == null ? "" : responseMeta.get("body"));
+        detail.put(ReportConstant.CONTEXT_PATH, requestMeta.get("contextPath"));
+        detail.put(ReportConstant.REPLAY_REQUEST, requestMeta.get("replay-request"));
 
         detail.put(ReportConstant.SAAS_METHOD_POOL, methodPool);
 
@@ -95,12 +115,5 @@ public class GraphBuilder {
         return report.toString();
     }
 
-    // a,b,c,d,e,f,g
-    // 栈
-    // a
-    // ab
-    // abc
-    // abd
-    // abd
-
+    private static final Logger logger = LogUtils.getLogger(GraphBuilder.class);
 }

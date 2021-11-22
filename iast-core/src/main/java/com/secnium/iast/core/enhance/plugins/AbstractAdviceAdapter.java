@@ -114,10 +114,10 @@ public abstract class AbstractAdviceAdapter extends AdviceAdapter implements Asm
         loadArgArray();
         push(context.getNamespace());
         push(type);
-        push(context.getListenId());
-        push(context.getMatchClassname());
+        push(context.getClassName());
+        push(context.getMatchClassName());
         push(name);
-        push(desc);
+        push(context.getClassName().replace('/', '.') + "." + name);
         loadThisOrPushNullIfIsStatic();
         push(signature);
         push(Modifier.isStatic(access));

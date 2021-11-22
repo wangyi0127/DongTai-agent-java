@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.secnium.iast</groupId>
         <artifactId>iast</artifactId>
-        <version>0.6.1</version>
+        <version>1.1.1</version>
     </parent>
     <artifactId>iast-core</artifactId>
     <name>iast-core</name>
@@ -23,6 +23,7 @@
                 <directory>src/main/resources</directory>
                 <includes>
                     <include>logback-dongtai.xml</include>
+                    <include>dongtai-servlet.jar</include>
                     <include>**/version</include>
                     <include>**/logo</include>
                     <include>**/blackext.txt</include>
@@ -55,7 +56,6 @@
                                     <excludes>
                                         <exclude>META-INF/</exclude>
                                         <exclude>*.dtd</exclude>
-                                        <exclude>java.lang.iast.inject.*</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
@@ -89,16 +89,20 @@
                                     <shadedPattern>${shade-prefix}.org.json</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>javax.servlet</pattern>
-                                    <shadedPattern>${shade-prefix}.javax.servlet</shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>javax.xml.bind</pattern>
                                     <shadedPattern>${shade-prefix}.javax.xml.bind</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>javax.xml.stream</pattern>
                                     <shadedPattern>${shade-prefix}.javax.xml.stream</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>oshi</pattern>
+                                    <shadedPattern>${shade-prefix}.oshi</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.sun.jna</pattern>
+                                    <shadedPattern>${shade-prefix}.com.sun.jna</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
@@ -138,18 +142,11 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>com.secnium.iast</groupId>
             <artifactId>iast-inject</artifactId>
             <version>${iast.version}</version>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/be.cyberelf.nanoxml/nanoxml -->
-        <dependency>
-            <groupId>be.cyberelf.nanoxml</groupId>
-            <artifactId>nanoxml</artifactId>
-            <version>${nanoxml.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!--日志所需依赖-->
@@ -180,14 +177,6 @@
             <version>${commons-io.version}</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/commons-configuration/commons-configuration -->
-        <dependency>
-            <groupId>commons-configuration</groupId>
-            <artifactId>commons-configuration</artifactId>
-            <version>${commons-configuration.version}</version>
-        </dependency>
-
-
         <!-- asm -->
         <dependency>
             <groupId>org.ow2.asm</groupId>
@@ -205,6 +194,7 @@
             <version>${asm.version}</version>
         </dependency>
 
+        <!-- ThreadFactoryBuilder相关 -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
@@ -217,17 +207,10 @@
             <version>${json.version}</version>
         </dependency>
 
-        <!--  RSA加密所需 -->
         <dependency>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
-            <version>2.1</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>javax.activation</groupId>
-                    <artifactId>activation</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>com.github.oshi</groupId>
+            <artifactId>oshi-core</artifactId>
+            <version>${oshi-core.version}</version>
         </dependency>
     </dependencies>
 

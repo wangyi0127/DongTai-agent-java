@@ -1,19 +1,18 @@
 package com.secnium.iast.core;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
-
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Properties;
 
 /**
  * @author dongzhiyong@huoxian.cn
  */
 public class PropertyUtils {
     private static PropertyUtils instance;
-    public PropertiesConfiguration cfg = null;
+    public Properties cfg = null;
     private String iastName;
-    private String iastVersion;
     private String iastResponseName;
     private String iastResponseValue;
     private String iastServerToken;
@@ -22,6 +21,7 @@ public class PropertyUtils {
     private String iastDumpPath;
     private Long heartBeatInterval = -1L;
     private Long reportInterval = -1L;
+    private Long replayInterval = -1L;
     private String serverUrl;
     private String namespace;
     private String engineName;
@@ -31,6 +31,8 @@ public class PropertyUtils {
     private String proxyEnableStatus;
     private String proxyHost;
     private int proxyPort = -1;
+    private String debugFlag;
+    private Integer isAutoCreateProject;
 
     private final String propertiesFilePath;
 
@@ -58,45 +60,40 @@ public class PropertyUtils {
         try {
             File propertiesFile = new File(propertiesFilePath);
             if (propertiesFile.exists()) {
-                cfg = new PropertiesConfiguration(propertiesFilePath);
-                cfg.setReloadingStrategy(new FileChangedReloadingStrategy());
+                cfg = new Properties();
+                cfg.load(new FileInputStream(propertiesFile));
             }
-        } catch (ConfigurationException e) {
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     public String getIastName() {
         if (null == iastName) {
-            iastName = cfg.getString("iast.name");
+            iastName = cfg.getProperty("iast.name");
         }
         return iastName;
     }
 
-    public String getIastVersion() {
-        if (null == iastVersion) {
-            iastVersion = cfg.getString("iast.version");
-        }
-        return iastVersion;
-    }
-
     public String getIastResponseFlagName() {
         if (null == iastResponseName) {
-            iastResponseName = cfg.getString("iast.response.name");
+            iastResponseName = cfg.getProperty("iast.response.name");
         }
         return iastResponseName;
     }
 
     public String getIastResponseFlagValue() {
         if (null == iastResponseValue) {
-            iastResponseValue = cfg.getString("iast.response.value");
+            iastResponseValue = cfg.getProperty("iast.response.value");
         }
         return iastResponseValue;
     }
 
     public String getIastServerToken() {
         if (null == iastServerToken) {
-            iastServerToken = cfg.getString("iast.server.token");
+            iastServerToken = cfg.getProperty("iast.server.token");
         }
         return iastServerToken;
     }
@@ -104,7 +101,6 @@ public class PropertyUtils {
     @Override
     public String toString() {
         return "[IastName=" + getIastName() +
-                ", IastVersion=" + getIastVersion() +
                 ", IastResponseName=" + getIastResponseFlagName() +
                 "，IastResponseVersion=" + getIastResponseFlagValue() +
                 "，IastServerUrl=" + getBaseUrl() +
@@ -114,7 +110,7 @@ public class PropertyUtils {
 
     private String getAllHookState() {
         if (null == allHookState) {
-            allHookState = System.getProperty("iast.allhook.enable", cfg.getString("iast.allhook.enable"));
+            allHookState = System.getProperty("iast.allhook.enable", cfg.getProperty("iast.allhook.enable"));
         }
         return allHookState;
     }
@@ -145,14 +141,14 @@ public class PropertyUtils {
 
     public String getDumpClassPath() {
         if (null == iastDumpPath) {
-            iastDumpPath = System.getProperty("iast.dump.class.path", cfg.getString("iast.dump.class.path"));
+            iastDumpPath = System.getProperty("iast.dump.class.path", cfg.getProperty("iast.dump.class.path"));
         }
         return iastDumpPath;
     }
 
     private String getDumpClassState() {
         if (null == dumpClassState) {
-            dumpClassState = System.getProperty("iast.dump.class.enable", cfg.getString("iast.dump.class.enable"));
+            dumpClassState = System.getProperty("iast.dump.class.enable", cfg.getProperty("iast.dump.class.enable"));
         }
         return dumpClassState;
     }
@@ -161,51 +157,58 @@ public class PropertyUtils {
         return "true".equals(getDumpClassState());
     }
 
-    public long getHeartBeatInterval() {
-        if (heartBeatInterval == -1L) {
-            heartBeatInterval = cfg.getLong("iast.service.heartbeat.interval", 5 * 60 * 1000);
+    public long getReplayInterval() {
+        if (replayInterval == -1L) {
+            replayInterval = Long.valueOf(System.getProperty("iast.service.replay.interval", cfg.getProperty("iast.service.replay.interval", "5000")));
         }
-        return heartBeatInterval;
+        return replayInterval;
     }
 
     public long getReportInterval() {
         if (reportInterval == -1L) {
-            reportInterval = cfg.getLong("iast.service.vulreport.interval", 1000);
+            reportInterval = Long.valueOf(System.getProperty("iast.service.report.interval", cfg.getProperty("iast.service.report.interval", "60000")));
         }
         return reportInterval;
     }
 
+    public long getHeartBeatInterval() {
+        if (heartBeatInterval == -1L) {
+            heartBeatInterval = Long.valueOf(System.getProperty("iast.service.heartbeat.interval", cfg.getProperty("iast.service.heartbeat.interval", "30")));
+        }
+        return heartBeatInterval;
+    }
+
     public String getBaseUrl() {
         if (null == serverUrl) {
-            serverUrl = System.getProperty("iast.server.url", cfg.getString("iast.server.url"));
+            serverUrl = System.getProperty("iast.server.url", cfg.getProperty("iast.server.url"));
         }
         return serverUrl;
     }
 
     public String getNamespace() {
         if (null == namespace) {
-            namespace = System.getProperty("app.name", cfg.getString("app.name", "IastVulScan"));
+            namespace = System.getProperty("app.name", cfg.getProperty("app.name", "IastVulScan"));
         }
         return namespace;
     }
 
     public String getEngineName() {
         if (null == engineName) {
-            engineName = System.getProperty("engine.name", cfg.getString("engine.name", "agent"));
+            engineName = System.getProperty("engine.name", cfg.getProperty("engine.name", "agent"));
         }
         return engineName;
     }
 
     public String getProjectName() {
         if (null == projectName) {
-            projectName = System.getProperty("project.name", cfg.getString("project.name", "Demo Project"));
+            projectName = System.getProperty("project.name", cfg.getProperty("project.name", "Demo Project"));
         }
         return projectName;
     }
 
     private String getMode() {
         if (null == mode) {
-            mode = System.getProperty("iast.mode", cfg.getString("iast.mode", "normal"));
+            mode = System.getProperty("iast.mode", cfg.getProperty("iast.mode", "normal"));
         }
         return mode;
     }
@@ -235,7 +238,7 @@ public class PropertyUtils {
 
     private String getProxyEnableStatus() {
         if (null == proxyEnableStatus) {
-            proxyEnableStatus = System.getProperty("iast.proxy.enable", cfg.getString("iast.proxy.enable", "false"));
+            proxyEnableStatus = System.getProperty("iast.proxy.enable", cfg.getProperty("iast.proxy.enable", "false"));
         }
         return proxyEnableStatus;
     }
@@ -246,15 +249,47 @@ public class PropertyUtils {
 
     public String getProxyHost() {
         if (null == proxyHost) {
-            proxyHost = System.getProperty("iast.proxy.host", cfg.getString("iast.proxy.host", "false"));
+            proxyHost = System.getProperty("iast.proxy.host", cfg.getProperty("iast.proxy.host", "false"));
         }
         return proxyHost;
     }
 
     public int getProxyPort() {
         if (-1 == proxyPort) {
-            proxyPort = Integer.parseInt(System.getProperty("iast.proxy.port", cfg.getString("iast.proxy.port", "80")));
+            proxyPort = Integer.parseInt(System.getProperty("iast.proxy.port", cfg.getProperty("iast.proxy.port", "80")));
         }
         return proxyPort;
+    }
+
+    private String getDebugFlag() {
+        if (debugFlag == null) {
+            debugFlag = System.getProperty("debug", "false");
+        }
+        return debugFlag;
+    }
+
+    public boolean isDebug() {
+        return "true".equalsIgnoreCase(debugFlag);
+    }
+
+    public Integer isAutoCreateProject() {
+        if (null == isAutoCreateProject) {
+            String result = System.getProperty("project.create", cfg.getProperty("project.create", "false"));
+            if (result.equals("false")) {
+                isAutoCreateProject = 0;
+            } else if (result.equals("true")) {
+                isAutoCreateProject = 1;
+            }
+        }
+        return isAutoCreateProject;
+    }
+
+
+    public String getProjectVersion() {
+        return System.getProperty("project.version", cfg.getProperty("project.version", "V1.0"));
+    }
+
+    public Integer getResponseLength() {
+        return Integer.parseInt(System.getProperty("response.length", cfg.getProperty("response.length")));
     }
 }

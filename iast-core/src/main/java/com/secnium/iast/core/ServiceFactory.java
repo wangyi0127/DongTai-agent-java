@@ -2,8 +2,9 @@ package com.secnium.iast.core;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.secnium.iast.core.replay.HttpRequestReplay;
-import com.secnium.iast.core.report.HeartBeatReport;
-import com.secnium.iast.core.report.VulnReport;
+import com.secnium.iast.core.report.AgentQueueReport;
+import com.secnium.iast.core.report.MethodReportSender;
+import com.secnium.iast.core.report.ReportSender;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -13,17 +14,18 @@ import java.util.concurrent.TimeUnit;
  * @author dongzhiyong@huoxian.cn
  */
 public class ServiceFactory {
-    private static final long DELAY = 60000;
-    private static final long HEARTBEAT_MIN_DELAY = 10000;
-    private static final long VULNREPORT_MIN_DELAY = 100;
     private static ServiceFactory INSTANCE;
-    private final long heartbeatMisc;
-    private final long reportTims;
-    private final ScheduledExecutorService executorService;
+    private final long replayInterval;
+    private final long reportInterval;
+    private final ScheduledExecutorService queueService;
+    private final ScheduledExecutorService reportService;
+    private final ScheduledExecutorService methodService;
+    private final ScheduledExecutorService replayService;
 
-    HeartBeatReport heartBeat = null;
-    VulnReport report = null;
-    HttpRequestReplay requestReplay = new HttpRequestReplay();
+    ReportSender report = null;
+    HttpRequestReplay requestReplay = null;
+    MethodReportSender methodReportSender = null;
+    AgentQueueReport agentQueueSender = null;
 
     public static ServiceFactory getInstance() {
         if (null == INSTANCE) {
@@ -32,23 +34,32 @@ public class ServiceFactory {
         return INSTANCE;
     }
 
+    /**
+     * fixme 优化线程池创建
+     */
     public ServiceFactory() {
         assert null != PropertyUtils.getInstance();
         PropertyUtils propertiesUtils = PropertyUtils.getInstance();
-        this.heartbeatMisc = propertiesUtils.getHeartBeatInterval();
-        this.reportTims = propertiesUtils.getReportInterval();
-        this.executorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("dongtai-engine-report").build());
+        this.replayInterval = propertiesUtils.getReplayInterval();
+        this.reportInterval = propertiesUtils.getReportInterval();
+        this.queueService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("dongtai-queue").build());
+        this.reportService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("dongtai-report").build());
+        this.methodService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("dongtai-method").build());
+        this.replayService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("dongtai-replay").build());
     }
 
     public void init() {
-        heartBeat = new HeartBeatReport(Math.max(heartbeatMisc, HEARTBEAT_MIN_DELAY));
-        report = new VulnReport(Math.max(reportTims, VULNREPORT_MIN_DELAY));
+        agentQueueSender = new AgentQueueReport();
+        methodReportSender = new MethodReportSender();
+        report = new ReportSender();
+        requestReplay = new HttpRequestReplay();
     }
 
     public void start() {
-        executorService.scheduleWithFixedDelay(heartBeat, DELAY, heartbeatMisc, TimeUnit.MILLISECONDS);
-        executorService.scheduleWithFixedDelay(report, 5000, reportTims, TimeUnit.MILLISECONDS);
-        executorService.scheduleWithFixedDelay(requestReplay, 5000, heartbeatMisc, TimeUnit.MILLISECONDS);
+        queueService.scheduleWithFixedDelay(agentQueueSender,0,PropertyUtils.getInstance().getHeartBeatInterval(),TimeUnit.SECONDS);
+        methodService.scheduleWithFixedDelay(methodReportSender, 0, reportInterval, TimeUnit.MILLISECONDS);
+        reportService.scheduleWithFixedDelay(report, 0, reportInterval, TimeUnit.MILLISECONDS);
+        replayService.scheduleWithFixedDelay(requestReplay, 0, replayInterval, TimeUnit.MILLISECONDS);
     }
 
     public void stop() {
